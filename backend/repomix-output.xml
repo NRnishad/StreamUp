@@ -1,0 +1,261 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/controllers.js/auth.controller.js
+src/lip/db.js
+src/models/User.js
+src/routes/auth.route.js
+src/server.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="package.json">
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.2",
+    "stream-chat": "^8.60.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
+</file>
+
+<file path="src/controllers.js/auth.controller.js">
+import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
+
+export async function signup(req, res) {
+    const {email,password,fullName}=req.body
+    try {
+        if(!email || !password || !fullName) {
+            return res.status(400).json({message: "Please fill all the fields"});
+        }
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if(existingUser) {
+            return res.status(400).json({message: "User already exists"});
+        }
+        if(password.length < 6) {
+            return res.status(400).json({message: "Password must be at least 6 characters long"});
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if(!emailRegex.test(email)) {
+            return res.status(400).json({message: "Please enter a valid email address"});
+        }
+
+        const idx = Math.floor(Math.random() * 100)+1;
+        const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
+
+
+        // Create new user
+        const newUser = await User({
+            email,
+            password,
+            fullName,
+            profilePicture :randomAvatar,
+        }); 
+
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('jwt',token, {
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Set to true in production
+            sameSite: 'strict', // Helps prevent CSRF attacks
+        }
+        )
+        res.status(201).json({
+            success: true,
+            user:newUser
+    });
+       
+
+    } catch (error) {
+        
+    }
+    }
+    
+export async function login(req, res) {
+    res.send('login');
+    }
+
+
+export function logout(req, res) {
+    res.send('logout');
+    }
+</file>
+
+<file path="src/lip/db.js">
+import mongoose from 'mongoose';
+
+export const connectDB = async () => {
+    try{
+        const conn = await mongoose.connect(process.env.MONGO_URI)
+        console.log(`MongoDB connected: ${conn.connection.host}`);
+    } catch (error) {
+        console.log(`error in connecting to MongoDB: ${error}`);
+        process.exit(1); // Exit process with failure
+    }
+    
+}
+</file>
+
+<file path="src/models/User.js">
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
+const userSchema = new mongoose.Schema({
+    fullName: {
+        type: String,
+        required: true,
+    },email: {
+        type: String,
+        required: true,
+        unique: true,
+    },password: {
+        type: String,
+        required: true,
+    },profilePicture: {
+        type: String,
+        default: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+    },bio: {
+        type: String,
+        default: "Hey there! I am using StreamUp",
+    },nativeLanguage:{
+        type: String,
+        default: ""
+    },learningLanguage:{
+        type: String,
+        default: ""
+    },location:{
+        type: String,
+        default: ""
+    },isOnboarded:{
+        type: Boolean,
+        default: false,
+    },frends: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    }],
+    },{timestamps:true})
+
+    const User = mongoose.model("User", userSchema);
+    // pre hook to hash password before saving
+    userSchema.pre("save", async function(next) {
+        if(!this.isModified("password")) {
+            return next();
+        }
+       try{
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+       }catch(error) {
+        next(error);
+       }    
+    });
+
+
+
+    export default User;
+</file>
+
+<file path="src/routes/auth.route.js">
+import express from 'express';
+const router = express.Router();
+import { login,signup,logout} from '../controllers.js/auth.controller.js';
+
+
+router.post('/signup', signup);
+router.post('/login', login);
+router.post('/logout', logout);
+
+
+
+export default router;
+</file>
+
+<file path="src/server.js">
+import express from 'express';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.route.js';
+import { connectDB } from './lip/db.js';
+
+
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT 
+app.use(express.json());
+
+app.use('/api/auth',authRoutes);
+
+
+
+
+app.listen(PORT, () => {  console.log(`Server is running on port ${PORT}`);
+connectDB()
+});
+</file>
+
+</files>
