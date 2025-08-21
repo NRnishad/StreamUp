@@ -7,14 +7,24 @@ import OnboardingPage from "./pages/OnboardingPage.jsx"
 import CallPage from "./pages/CallPage.jsx"
 import { Routes, Route, Navigate } from "react-router"
 
+import {Toaster} from 'react-hot-toast'
+import { useQuery } from "@tanstack/react-query"
+import { axiosInstance } from "./lib/axios.js"
 
 
 
 function App() {
-  
+  const {data} = useQuery({
+      queryKey: ['me'],
+      queryFn: async () => {
+        const res = await axiosInstance.get('/auth/me')
+        return res.data
+      }, retry: false,})
+      console.log(data)
 
   return (
     <div className="h-screen " data-theme='night'>
+     
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -26,7 +36,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      
+      <Toaster/>
     </div>
    
   )
