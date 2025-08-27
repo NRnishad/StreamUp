@@ -14,26 +14,27 @@ import { axiosInstance } from "./lib/axios.js"
 
 
 function App() {
-  const {data} = useQuery({
-      queryKey: ['me'],
+  const {data:authData} = useQuery({
+      queryKey: ['authUser'],
       queryFn: async () => {
         const res = await axiosInstance.get('/auth/me')
         return res.data
       }, retry: false,})
-      console.log(data)
+      console.log()
+      const authUser = authData?.user || null
 
   return (
     <div className="h-screen " data-theme='night'>
      
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/call" element={<CallPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={authUser?<HomePage />:<Navigate to="/login"/>} />
+        <Route path="/login" element={!authUser?<LoginPage />:<Navigate to="/"/>} />
+        <Route path="/signup" element={!authUser?<SignUpPage />:<Navigate to="/"/>} />
+        <Route path="/chat" element={authUser?<ChatPage />:<Navigate to="/login"/>} />
+        <Route path="/notifications" element={authUser?<NotificationsPage />:<Navigate to="/login"/>} />
+        <Route path="/onboarding" element={authUser?<OnboardingPage />:<Navigate to="/login"/>} />
+        <Route path="/call" element={authUser?<CallPage />:<Navigate to="/login"/>} />
+        <Route path="*" element={authUser?<Navigate to="/" replace />:<Navigate to="/login"/>} />
       </Routes>
 
       <Toaster/>
