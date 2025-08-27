@@ -6,22 +6,16 @@ import NotificationsPage from "./pages/NotificationsPage.jsx"
 import OnboardingPage from "./pages/OnboardingPage.jsx"
 import CallPage from "./pages/CallPage.jsx"
 import { Routes, Route, Navigate } from "react-router"
-
 import {Toaster} from 'react-hot-toast'
-import { useQuery } from "@tanstack/react-query"
-import { axiosInstance } from "./lib/axios.js"
+import PageLoader from "./components/PageLoader.jsx"
+import useAuthUser from "./hooks/useAuthUser.js"
 
 
 
 function App() {
-  const {data:authData,isLoading} = useQuery({
-      queryKey: ['authUser'],
-      queryFn: async () => {
-        const res = await axiosInstance.get('/auth/me')
-        return res.data
-      }, retry: false,})
-      console.log()
-      const authUser = authData?.user || null
+ 
+      const {isLoading,authUser}=useAuthUser()
+      
       if(isLoading) return <PageLoader/>
   return (
     <div className="h-screen " data-theme='night'>
