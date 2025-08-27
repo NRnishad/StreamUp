@@ -14,7 +14,7 @@ import { axiosInstance } from "./lib/axios.js"
 
 
 function App() {
-  const {data:authData} = useQuery({
+  const {data:authData,isLoading} = useQuery({
       queryKey: ['authUser'],
       queryFn: async () => {
         const res = await axiosInstance.get('/auth/me')
@@ -22,7 +22,7 @@ function App() {
       }, retry: false,})
       console.log()
       const authUser = authData?.user || null
-
+      if(isLoading) return <PageLoader/>
   return (
     <div className="h-screen " data-theme='night'>
      
