@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
     },isOnboarded:{
         type: Boolean,
         default: false,
-    },frends: [{
+    },friends: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
     }],

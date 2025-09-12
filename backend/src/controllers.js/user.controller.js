@@ -2,46 +2,43 @@ import User from '../models/User.js';
 import FriendRequest from '../models/FriendRequest.js';
 export async function getRecommendeddUsers(req, res){
     try {
-        const user = req.user;
-        if (!user.isOnboarded) {
-            return res.status(400).json({ message: "Please complete onboarding first" });
-        }
-        const recommendeddUsers = await User.find({
-            $and: [
-                { _id: { $ne: user._id } },
-                { isOnboarded: true },
-                { _id: { $nin: user.friends } }
-            ]
-        })
-        .select("-password -friends ")
-        .limit(10)
+      const currentUserId = req.user.id;
+      const currentUser = req.user;
 
-        res.status(200).json({recommendeddUsers})
-        
+      const recommendedUsers = await User.find({
+        $and: [
+          { _id: { $ne: currentUserId } }, //exclude current user
+          { _id: { $nin: currentUser.friends } }, // exclude current user's friends
+          { isOnboarded: true },
+        ],
+      });
+      res.status(200).json(recommendedUsers);
     } catch (error) {
-        console.error("Error fetching recommended users:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
+      console.error("Error in getRecommendedUsers controller", error.message);
+      res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
 export async function getMyFriends(req,res) {
-    try {
-        const user = req.user;
-        if (!user.isOnboarded) {
-            return res.status(400).json({ message: "Please complete onboarding first" });
-        }
-        const friends = await User.findById(req.user._id).select("friends").populate({"friends": "fullName profilePicture nativeLanguage learningLanguage location bio"});
-    } catch (error) {
-        console.error("Error fetching friends:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
-        
-    }
+     try {
+       const user = await User.findById(req.user.id)
+         .select("friends")
+         .populate(
+           "friends",
+           "fullName profilePicture nativeLanguage learningLanguage"
+         );
+
+       res.status(200).json(user.friends);
+     } catch (error) {
+       console.error("Error in getMyFriends controller", error.message);
+       res.status(500).json({ message: "Internal Server Error" });
+     }
 }
 
 
 export async function sendFriendRequest(req,res){
     try {
-        const myId = req.user._id;
+        const myId = req.user.id;
         const {id:recipientId} = req.params;
 
         //prevent sending friend request to self
@@ -72,7 +69,7 @@ export async function sendFriendRequest(req,res){
             sender: myId,
             recipient: recipientId
         });
-        res.status(201).json({message:"Friend request sent successfully", request: friendRequest});
+        res.status(201).json( friendRequest);
 
     } catch (error) {
         console.error("Error sending friend request:",  error.message);
